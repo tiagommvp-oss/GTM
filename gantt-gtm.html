@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gamgi — GTM Gantt Chart</title>
+    <style>
+        @font-face {
+            font-family: 'Host Grotesk';
+            src: url('HostGrotesk-VariableFont_wght.ttf') format('truetype');
+            font-weight: 100 900;
+            font-display: swap;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Host Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #f0f0f0;
+            -webkit-font-smoothing: antialiased;
+            padding: 3rem 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 3rem;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .header-top img { height: 32px; }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+        .header p {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.4);
+            margin-top: 0.4rem;
+        }
+
+        /* ═══════ LEGEND ═══════ */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.5);
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* ═══════ GANTT ═══════ */
+        .gantt-wrapper {
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            background: #111;
+        }
+
+        .gantt {
+            min-width: 1200px;
+        }
+
+        /* Months header */
+        .gantt-months {
+            display: grid;
+            grid-template-columns: 240px repeat(6, 1fr);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .gantt-months-label {
+            padding: 1rem 1.2rem;
+            font-size: 0.75rem;
+            font-weight: 550;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .gantt-month {
+            padding: 1rem 0.8rem;
+            font-size: 0.82rem;
+            font-weight: 550;
+            color: rgba(255,255,255,0.6);
+            border-left: 1px solid rgba(255,255,255,0.04);
+            text-align: center;
+        }
+        .gantt-month.launch {
+            color: #FF4B1F;
+            font-weight: 650;
+        }
+
+        /* Weeks sub-header */
+        .gantt-weeks {
+            display: grid;
+            grid-template-columns: 240px repeat(24, 1fr);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .gantt-weeks-label {
+            padding: 0.5rem 1.2rem;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.2);
+        }
+        .gantt-week {
+            padding: 0.5rem 0;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.15);
+            border-left: 1px solid rgba(255,255,255,0.03);
+            text-align: center;
+        }
+
+        /* Phase separator */
+        .gantt-phase {
+            display: grid;
+            grid-template-columns: 240px repeat(24, 1fr);
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .gantt-phase-label {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .gantt-phase-label.pre { color: #60a5fa; }
+        .gantt-phase-label.launch-phase { color: #FF4B1F; }
+        .gantt-phase-label.post { color: #34d399; }
+
+        /* Task rows */
+        .gantt-row {
+            display: grid;
+            grid-template-columns: 240px repeat(24, 1fr);
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            align-items: center;
+            min-height: 44px;
+        }
+        .gantt-row:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .gantt-task {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .gantt-task .task-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Bar cells */
+        .gantt-cell {
+            padding: 0.4rem 0;
+            border-left: 1px solid rgba(255,255,255,0.02);
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .bar {
+            height: 24px;
+            border-radius: 4px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Colors */
+        .bar.blue { background: rgba(96,165,250,0.35); border: 1px solid rgba(96,165,250,0.5); }
+        .bar.orange { background: rgba(255,75,31,0.35); border: 1px solid rgba(255,75,31,0.5); }
+        .bar.green { background: rgba(52,211,153,0.35); border: 1px solid rgba(52,211,153,0.5); }
+        .bar.purple { background: rgba(167,139,250,0.35); border: 1px solid rgba(167,139,250,0.5); }
+        .bar.yellow { background: rgba(251,191,36,0.35); border: 1px solid rgba(251,191,36,0.5); }
+
+        .dot-blue { background: #60a5fa; }
+        .dot-orange { background: #FF4B1F; }
+        .dot-green { background: #34d399; }
+        .dot-purple { background: #a78bfa; }
+        .dot-yellow { background: #fbbf24; }
+
+        /* Launch line */
+        .launch-line {
+            position: relative;
+        }
+        .launch-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: #FF4B1F;
+            z-index: 5;
+        }
+
+        /* Milestone diamond */
+        .milestone {
+            width: 14px;
+            height: 14px;
+            background: #FF4B1F;
+            transform: rotate(45deg);
+            margin: 0 auto;
+            box-shadow: 0 0 8px rgba(255,75,31,0.4);
+        }
+
+        /* ═══════ NOTES ═══════ */
+        .notes {
+            margin-top: 2rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .note-card {
+            background: #111;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 1.2rem;
+        }
+        .note-card h3 {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .note-card h3 .nd { width: 8px; height: 8px; border-radius: 50%; }
+        .note-card p {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.4);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1.5rem 1rem; }
+            .notes { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="header-top">
+            <img src="logo-gamgi.png" alt="gamgi">
+        </div>
+        <h1>Go-To-Market · Gantt Chart</h1>
+        <p>1 Março — 1 Agosto 2026 · Lançamento: 1 Maio 2026</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(96,165,250,0.5)"></div> Brand & Website</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(167,139,250,0.5)"></div> Conteúdo & Thought Leadership</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(255,75,31,0.5)"></div> Sales & Outreach</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(52,211,153,0.5)"></div> Produto & Delivery</div>
+        <div class="legend-item"><div class="legend-dot" style="background:rgba(251,191,36,0.5)"></div> Partnerships & Network</div>
+        <div class="legend-item"><div class="milestone" style="width:8px;height:8px;box-shadow:none;"></div> Milestone</div>
+    </div>
+
+    <div class="gantt-wrapper">
+        <div class="gantt">
+
+            <!-- MONTHS -->
+            <div class="gantt-months">
+                <div class="gantt-months-label">Task</div>
+                <div class="gantt-month">Mar</div>
+                <div class="gantt-month">Abr</div>
+                <div class="gantt-month launch">Mai ▸ Launch</div>
+                <div class="gantt-month">Jun</div>
+                <div class="gantt-month">Jul</div>
+                <div class="gantt-month">Ago</div>
+            </div>
+
+            <!-- WEEKS -->
+            <div class="gantt-weeks">
+                <div class="gantt-weeks-label">Semanas</div>
+                <div class="gantt-week">S1</div><div class="gantt-week">S2</div><div class="gantt-week">S3</div><div class="gantt-week">S4</div>
+                <div class="gantt-week">S5</div><div class="gantt-week">S6</div><div class="gantt-week">S7</div><div class="gantt-week">S8</div>
+                <div class="gantt-week">S9</div><div class="gantt-week">S10</div><div class="gantt-week">S11</div><div class="gantt-week">S12</div>
+                <div class="gantt-week">S13</div><div class="gantt-week">S14</div><div class="gantt-week">S15</div><div class="gantt-week">S16</div>
+                <div class="gantt-week">S17</div><div class="gantt-week">S18</div><div class="gantt-week">S19</div><div class="gantt-week">S20</div>
+                <div class="gantt-week">S21</div><div class="gantt-week">S22</div><div class="gantt-week">S23</div><div class="gantt-week">S24</div>
+            </div>
+
+            <!-- ════════ PRE-LAUNCH (Mar-Abr) ════════ -->
+            <div class="gantt-phase">
+                <div class="gantt-phase-label pre">Pré-Lançamento</div>
+                <div class="gantt-cell" style="grid-column: span 24;"></div>
+            </div>
+
+            <!-- Brand & Website -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-blue"></span> Finalizar identidade visual</div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"></div>
+                <div class="gantt-cell" style="grid-column: span 20;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-blue"></span> Coming soon page live</div>
+                <div class="gantt-cell"></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"></div>
+                <div class="gantt-cell" style="grid-column: span 21;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-blue"></span> Website gamgi.ai (build & deploy)</div>
+                <div class="gantt-cell"></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <!-- Conteúdo & Thought Leadership -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> Definir narrativa & messaging</div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"></div>
+                <div class="gantt-cell" style="grid-column: span 21;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> Pitch deck finalizado</div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> LinkedIn content plan</div>
+                <div class="gantt-cell" style="grid-column: span 5;"></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <!-- Sales & Outreach -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Definir ICP & target list</div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell" style="grid-column: span 20;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Outreach a warm leads</div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Fechar primeiro cliente (beta)</div>
+                <div class="gantt-cell" style="grid-column: span 5;"></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <!-- Produto & Delivery -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-green"></span> Case Studies: MDC + 1</div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-green"></span> gamgiOS MVP (dashboard base)</div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-green"></span> Template de auditoria</div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <!-- Partnerships & Network -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-yellow"></span> Network: eventos & comunidades</div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell" style="grid-column: span 16;"></div>
+            </div>
+
+            <!-- ════════ LAUNCH (Mai S1) ════════ -->
+            <div class="gantt-phase">
+                <div class="gantt-phase-label launch-phase">Lançamento · 1 Maio</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="milestone"></div></div>
+                <div class="gantt-cell" style="grid-column: span 15;"></div>
+            </div>
+
+            <!-- Brand & Website -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-blue"></span> Website live (full)</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="bar blue"></div></div>
+                <div class="gantt-cell" style="grid-column: span 15;"></div>
+            </div>
+
+            <!-- Conteúdo & Thought Leadership -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> Anúncio LinkedIn + rede</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell" style="grid-column: span 14;"></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> Envio de PR</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell" style="grid-column: span 14;"></div>
+            </div>
+
+            <!-- Sales & Outreach -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Email blast a lista de espera</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell" style="grid-column: span 15;"></div>
+            </div>
+
+            <!-- ════════ POST-LAUNCH (Mai-Ago) ════════ -->
+            <div class="gantt-phase">
+                <div class="gantt-phase-label post">Pós-Lançamento · Crescimento</div>
+                <div class="gantt-cell" style="grid-column: span 24;"></div>
+            </div>
+
+            <!-- Conteúdo & Thought Leadership -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-purple"></span> Conteúdo semanal LinkedIn</div>
+                <div class="gantt-cell" style="grid-column: span 9;"></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+                <div class="gantt-cell"><div class="bar purple"></div></div>
+            </div>
+
+            <!-- Sales & Outreach -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Cold outreach estruturado</div>
+                <div class="gantt-cell" style="grid-column: span 9;"></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+            </div>
+
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Pipeline: 5 auditorias agendadas</div>
+                <div class="gantt-cell" style="grid-column: span 10;"></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell"><div class="bar orange"></div></div>
+                <div class="gantt-cell" style="grid-column: span 6;"></div>
+            </div>
+
+            <!-- Produto & Delivery -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-green"></span> Entregar 1º projecto (beta)</div>
+                <div class="gantt-cell" style="grid-column: span 8;"></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell"><div class="bar green"></div></div>
+                <div class="gantt-cell" style="grid-column: span 10;"></div>
+            </div>
+
+            <!-- Partnerships & Network -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-yellow"></span> Parcerias estratégicas (2-3)</div>
+                <div class="gantt-cell" style="grid-column: span 10;"></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell"><div class="bar yellow"></div></div>
+                <div class="gantt-cell" style="grid-column: span 4;"></div>
+            </div>
+
+            <!-- Final milestone -->
+            <div class="gantt-row">
+                <div class="gantt-task"><span class="task-dot dot-orange"></span> Meta: 3 clientes activos</div>
+                <div class="gantt-cell" style="grid-column: span 23;"></div>
+                <div class="gantt-cell"><div class="milestone"></div></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="notes">
+        <div class="note-card">
+            <h3><span class="nd" style="background:#60a5fa;"></span> Pré-Lançamento (Mar–Abr)</h3>
+            <p>Foco em fundações: identidade, website, messaging, pitch deck, case studies, gamgiOS MVP, template de auditoria, e primeiros contactos com a rede. Objectivo: estar pronto para vender no dia 1 de Maio.</p>
+        </div>
+        <div class="note-card">
+            <h3><span class="nd" style="background:#FF4B1F;"></span> Lançamento (1 Mai)</h3>
+            <p>Website live, anúncio público, envio de PR, activação da rede. Coming soon page redireciona para o site completo. Primeiro push de outbound e conteúdo LinkedIn.</p>
+        </div>
+        <div class="note-card">
+            <h3><span class="nd" style="background:#34d399;"></span> Pós-Lançamento (Mai–Ago)</h3>
+            <p>Foco em tracção: fechar e entregar os primeiros projectos, cold outreach contínuo, conteúdo LinkedIn consistente, e construir pipeline de auditorias. Meta: 3 clientes activos até Agosto.</p>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Black background -->
+  <rect width="512" height="512" fill="#0a0a0a"/>
+  <!-- Orange bottom bar -->
+  <rect y="370" width="512" height="142" fill="#FF4B1F"/>
+  <!-- White "g" letter -->
+  <text x="256" y="420" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="580" fill="#ffffff" letter-spacing="-20">g</text>
+</svg>
